@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "pytest tests/test_calculator.py -v"
+    "test": "PLAYWRIGHT_BASE_URL=http://localhost:3001 pytest tests/test_calculator.py -v"
   },
   "dependencies": {
     "chart.js": "^4.4.7",
