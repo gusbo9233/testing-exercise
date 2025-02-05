@@ -90,11 +90,16 @@ jobs:
       - name: Run tests
         run: |
           echo "Running tests..."
-          mkdir -p test-results
-          npm test -- --html=test-results/report.html --disable-warnings
+          npm test -- --disable-warnings
           EXIT_CODE=$?
           echo "Test exit code: $EXIT_CODE"
-          exit 0
+          if [ $EXIT_CODE -eq 0 ]; then
+            echo "All tests passed!"
+            exit 0
+          else
+            echo "Tests failed with exit code $EXIT_CODE"
+            exit 1
+          fi
         env:
           PORT: 3001
           PLAYWRIGHT_BASE_URL: "http://localhost:3001"
@@ -111,6 +116,10 @@ jobs:
           echo "Node version: $(node -v)" >> test-results/summary.txt
           echo "NPM version: $(npm -v)" >> test-results/summary.txt
           echo "Python version: $(python --version)" >> test-results/summary.txt
+          echo "" >> test-results/summary.txt
+          echo "Test Results" >> test-results/summary.txt
+          echo "============" >> test-results/summary.txt
+          pytest tests/test_calculator.py -v --disable-warnings >> test-results/summary.txt 2>&1 || true
           
           # Copy server logs if they exist
           if [ -f .next/logs/server.log ]; then
