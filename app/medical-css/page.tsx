@@ -4,7 +4,7 @@ import MedicalDocumentsClient from './components/MedicalDocumentsClient';
 
 // Server actions for data fetching
 async function fetchDocuments(searchQuery?: string, category?: string, type?: string) {
-  let params = new URLSearchParams();
+  const params = new URLSearchParams();
   if (searchQuery) params.append('search', searchQuery);
   if (category && category !== 'all') params.append('category', category);
   if (type && type !== 'all') params.append('type', type);

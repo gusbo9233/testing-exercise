@@ -26,7 +26,7 @@ export default function MedicalDocumentsClient({
         type: 'all',
         sortBy: 'name'
     });
-    const [filterOptions, setFilterOptions] = useState<FilterOptions>(initialFilterOptions);
+    const [filterOptions, _setFilterOptions] = useState<FilterOptions>(initialFilterOptions);
     const [documents, setDocuments] = useState<MedicalDocument[]>(initialDocuments || []);
     const [selectedDocument, setSelectedDocument] = useState<MedicalDocument | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -186,7 +186,7 @@ export default function MedicalDocumentsClient({
         }, 300); // Add small delay to prevent too many requests
 
         return () => clearTimeout(timeoutId);
-    }, [searchQuery, filters]);
+    }, [loadDocuments]);
 
     // Function to refresh data
     async function refreshData() {
