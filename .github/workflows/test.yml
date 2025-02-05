@@ -14,8 +14,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Remove all problem matchers
-        run: echo "::remove-all-matchers::"
 
       - name: Check for package.json
         run: |
@@ -91,19 +89,14 @@ jobs:
 
       - name: Run tests
         run: |
-          echo "::remove-matcher::python"
           echo "Running tests..."
-          pytest tests/test_calculator.py -v --html=test-results/report.html --disable-warnings
+          npm test -- --html=test-results/report.html --disable-warnings
           EXIT_CODE=$?
           echo "Test exit code: $EXIT_CODE"
           exit 0
         env:
           PORT: 3001
           PLAYWRIGHT_BASE_URL: "http://localhost:3001"
-
-      - name: Clear problem matchers
-        run: |
-          echo "::remove-all-matchers::"
 
       - name: Prepare artifacts
         if: always()
