@@ -16,7 +16,7 @@ export default function MedicalDocumentsClient({ initialFilterOptions, initialDo
         type: 'all',
         sortBy: 'name'
     });
-    const [filterOptions, setFilterOptions] = useState<FilterOptions>(initialFilterOptions);
+    const [filterOptions, _setFilterOptions] = useState<FilterOptions>(initialFilterOptions);
     const [documents, setDocuments] = useState<MedicalDocument[]>(initialDocuments);
     const [selectedDocument, setSelectedDocument] = useState<MedicalDocument | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -177,7 +177,7 @@ export default function MedicalDocumentsClient({ initialFilterOptions, initialDo
     // Watch for changes in search/filters
     useEffect(() => {
         loadDocuments();
-    }, [searchQuery, filters]);
+    }, [searchQuery, filters, loadDocuments]);
 
     return (
         <main className="container mx-auto max-w-6xl p-5 bg-white text-black">

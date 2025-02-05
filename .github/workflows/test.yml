@@ -1,4 +1,4 @@
-name: Medical Documents Tests
+name: Calculator Tests
 
 on:
   push:
