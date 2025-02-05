@@ -100,7 +100,7 @@ jobs:
         run: |
           echo "::remove-matcher::python"
           echo "Running tests..."
-          pytest tests/test_medical_page.py -v --html=test-results/report.html --disable-warnings
+          pytest tests/test_calculator.py -v --html=test-results/report.html --disable-warnings
           EXIT_CODE=$?
           echo "Test exit code: $EXIT_CODE"
           exit 0
