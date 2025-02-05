@@ -15,6 +15,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check for package.json
+        run: |
+          if [ ! -f package.json ]; then
+            echo "Error: package.json not found"
+            exit 1
+          fi
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -23,10 +30,11 @@ jobs:
 
       - name: Install Node.js dependencies
         run: |
+          echo "Installing Node.js dependencies..."
           if [ -f package-lock.json ]; then
-            npm ci
+            npm ci || (echo "npm ci failed" && exit 1)
           else
-            npm install
+            npm install || (echo "npm install failed" && exit 1)
           fi
 
       - name: Set up Python
@@ -37,6 +45,7 @@ jobs:
 
       - name: Install Python dependencies
         run: |
+          echo "Installing Python dependencies..."
           python -m pip install --upgrade pip
           if [ -f requirements-test.txt ]; then
             pip install -r requirements-test.txt
@@ -52,10 +61,14 @@ jobs:
           mkdir -p .next/logs
 
       - name: Install Playwright browsers
-        run: playwright install --with-deps chromium
+        run: |
+          echo "Installing Playwright browsers..."
+          playwright install --with-deps chromium || (echo "Failed to install Playwright browsers" && exit 1)
 
       - name: Build Next.js application
-        run: npm run build
+        run: |
+          echo "Building Next.js application..."
+          npm run build || (echo "Build failed" && exit 1)
         env:
           PORT: 3001
 
@@ -64,11 +77,14 @@ jobs:
           echo "Starting Next.js server..."
           # Redirect server output to log file
           npm run start -p 3001 > .next/logs/server.log 2>&1 &
+          SERVER_PID=$!
+          echo "Server PID: $SERVER_PID"
+          
           echo "Waiting for server to be ready..."
           timeout 30s bash -c 'while ! nc -z localhost 3001; do 
             echo "Waiting for port 3001..."
             sleep 1
-          done' || (echo "Server failed to start" && exit 1)
+          done' || (echo "Server failed to start" && kill $SERVER_PID && exit 1)
           echo "Server is ready!"
         env:
           PORT: 3001
@@ -76,7 +92,7 @@ jobs:
       - name: Run tests
         run: |
           echo "Running tests..."
-          pytest tests/test_medical_page.py -v --html=test-results/report.html
+          pytest tests/test_medical_page.py -v --html=test-results/report.html || (echo "Tests failed" && exit 1)
         env:
           PORT: 3001
           PLAYWRIGHT_BASE_URL: "http://localhost:3001"
@@ -89,11 +105,22 @@ jobs:
           echo "============" >> test-results/summary.txt
           echo "Date: $(date)" >> test-results/summary.txt
           echo "Branch: ${{ github.ref }}" >> test-results/summary.txt
+          echo "Node version: $(node -v)" >> test-results/summary.txt
+          echo "NPM version: $(npm -v)" >> test-results/summary.txt
+          echo "Python version: $(python -v)" >> test-results/summary.txt
           
           # Copy server logs if they exist
           if [ -f .next/logs/server.log ]; then
             cp .next/logs/server.log test-results/
+          else
+            echo "No server logs found" > test-results/server-log-missing.txt
           fi
+          
+          # List all files in test directories
+          echo "Test Results Directory Contents:" > test-results/directory-listing.txt
+          ls -R test-results >> test-results/directory-listing.txt
+          echo "Playwright Report Directory Contents:" >> test-results/directory-listing.txt
+          ls -R playwright-report >> test-results/directory-listing.txt
 
       - name: Upload test results
         if: always()
