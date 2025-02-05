@@ -66,18 +66,11 @@ jobs:
           echo "Installing Playwright browsers..."
           playwright install --with-deps chromium || (echo "Failed to install Playwright browsers" && exit 1)
 
-      - name: Build Next.js application
+      - name: Start Next.js dev server
         run: |
-          echo "Building Next.js application..."
-          npm run build || (echo "Build failed" && exit 1)
-        env:
-          PORT: 3001
-
-      - name: Start Next.js server
-        run: |
-          echo "Starting Next.js server..."
+          echo "Starting Next.js dev server..."
           # Redirect server output to log file
-          npm run start -p 3001 > .next/logs/server.log 2>&1 &
+          npm run dev -- -p 3001 > .next/logs/server.log 2>&1 &
           SERVER_PID=$!
           echo "Server PID: $SERVER_PID"
 
