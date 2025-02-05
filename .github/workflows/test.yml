@@ -45,6 +45,12 @@ jobs:
             exit 1
           fi
 
+      - name: Create test directories
+        run: |
+          mkdir -p test-results
+          mkdir -p playwright-report
+          mkdir -p .next/logs
+
       - name: Install Playwright browsers
         run: playwright install --with-deps chromium
 
@@ -56,7 +62,8 @@ jobs:
       - name: Start Next.js server
         run: |
           echo "Starting Next.js server..."
-          npm run start -p 3001 &
+          # Redirect server output to log file
+          npm run start -p 3001 > .next/logs/server.log 2>&1 &
           echo "Waiting for server to be ready..."
           timeout 30s bash -c 'while ! nc -z localhost 3001; do 
             echo "Waiting for port 3001..."
@@ -69,10 +76,24 @@ jobs:
       - name: Run tests
         run: |
           echo "Running tests..."
-          pytest tests/test_medical_page.py -v
+          pytest tests/test_medical_page.py -v --html=test-results/report.html
         env:
           PORT: 3001
           PLAYWRIGHT_BASE_URL: "http://localhost:3001"
+
+      - name: Prepare artifacts
+        if: always()
+        run: |
+          # Create a summary file
+          echo "Test Summary" > test-results/summary.txt
+          echo "============" >> test-results/summary.txt
+          echo "Date: $(date)" >> test-results/summary.txt
+          echo "Branch: ${{ github.ref }}" >> test-results/summary.txt
+          
+          # Copy server logs if they exist
+          if [ -f .next/logs/server.log ]; then
+            cp .next/logs/server.log test-results/
+          fi
 
       - name: Upload test results
         if: always()
@@ -82,10 +103,4 @@ jobs:
           path: |
             test-results/
             playwright-report/
-            
-      - name: Upload server logs
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: server-logs
-          path: .next/server.log 
+          if-no-files-found: warn 
