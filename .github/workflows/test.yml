@@ -15,13 +15,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check for package.json
-        run: |
-          if [ ! -f package.json ]; then
-            echo "Error: package.json not found"
-            exit 1
-          fi
-
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -29,13 +22,7 @@ jobs:
           cache: 'npm'
 
       - name: Install Node.js dependencies
-        run: |
-          echo "Installing Node.js dependencies..."
-          if [ -f package-lock.json ]; then
-            npm ci || (echo "npm ci failed" && exit 1)
-          else
-            npm install || (echo "npm install failed" && exit 1)
-          fi
+        run: npm install
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -44,102 +31,15 @@ jobs:
 
       - name: Install Python dependencies
         run: |
-          echo "Installing Python dependencies..."
-          python -m pip install --upgrade pip
-          if [ -f requirements-test.txt ]; then
-            pip install -r requirements-test.txt
-          else
-            echo "Error: requirements-test.txt not found"
-            exit 1
-          fi
-
-      - name: Create test directories
-        run: |
-          mkdir -p test-results
-          mkdir -p playwright-report
-          mkdir -p .next/logs
-
-      - name: Install Playwright browsers
-        run: |
-          echo "Installing Playwright browsers..."
-          playwright install --with-deps chromium || (echo "Failed to install Playwright browsers" && exit 1)
+          pip install -r requirements-test.txt
+          playwright install --with-deps chromium
 
       - name: Start Next.js dev server
         run: |
-          echo "Starting Next.js dev server..."
-          # Redirect server output to log file
-          npm run dev -- -p 3001 > .next/logs/server.log 2>&1 &
-          SERVER_PID=$!
-          echo "Server PID: $SERVER_PID"
-
-          # Ensure netcat (nc) is installed
-          if ! command -v nc > /dev/null 2>&1; then
-            echo "nc not found, installing netcat..."
-            sudo apt-get update && sudo apt-get install -y netcat
-          fi
-
-          echo "Waiting for server to be ready..."
-          timeout 60s bash -c 'while ! nc -z localhost 3001; do 
-            echo "Waiting for port 3001..."
-            sleep 1
-          done' || (echo "Server failed to start" && kill $SERVER_PID && exit 1)
-          echo "Server is ready!"
-        env:
-          PORT: 3001
+          npm run dev -- -p 3001 &
+          npx wait-on http://localhost:3001
 
       - name: Run tests
-        run: |
-          echo "Running tests..."
-          npm test -- --disable-warnings
-          EXIT_CODE=$?
-          echo "Test exit code: $EXIT_CODE"
-          if [ $EXIT_CODE -eq 0 ]; then
-            echo "All tests passed!"
-            exit 0
-          else
-            echo "Tests failed with exit code $EXIT_CODE"
-            exit 1
-          fi
+        run: npm test
         env:
-          PORT: 3001
-          PLAYWRIGHT_BASE_URL: "http://localhost:3001"
-
-      - name: Prepare artifacts
-        if: always()
-        run: |
-          mkdir -p test-results
-          # Create a summary file
-          echo "Test Summary" > test-results/summary.txt
-          echo "============" >> test-results/summary.txt
-          echo "Date: $(date)" >> test-results/summary.txt
-          echo "Branch: ${{ github.ref }}" >> test-results/summary.txt
-          echo "Node version: $(node -v)" >> test-results/summary.txt
-          echo "NPM version: $(npm -v)" >> test-results/summary.txt
-          echo "Python version: $(python --version)" >> test-results/summary.txt
-          echo "" >> test-results/summary.txt
-          echo "Test Results" >> test-results/summary.txt
-          echo "============" >> test-results/summary.txt
-          pytest tests/test_calculator.py -v --disable-warnings >> test-results/summary.txt 2>&1 || true
-          
-          # Copy server logs if they exist
-          if [ -f .next/logs/server.log ]; then
-            cp .next/logs/server.log test-results/
-          else
-            echo "No server logs found" > test-results/server-log-missing.txt
-          fi
-          
-          # List all files in test directories
-          echo "Test Results Directory Contents:" > test-results/directory-listing.txt
-          ls -R test-results >> test-results/directory-listing.txt
-          echo "Playwright Report Directory Contents:" >> test-results/directory-listing.txt
-          ls -R playwright-report >> test-results/directory-listing.txt
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results
-          path: |
-            test-results/
-            playwright-report/
-          if-no-files-found: warn 
+          PLAYWRIGHT_BASE_URL: "http://localhost:3001" 
