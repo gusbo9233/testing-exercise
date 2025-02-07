@@ -1,4 +1,4 @@
-name: Calculator Tests
+name: Tests
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [ main, master ]
 
 jobs:
-  test:
+  calculator-tests:
     runs-on: ubuntu-latest
     env:
       PORT: 3001
@@ -39,7 +39,50 @@ jobs:
           npm run dev -- -p 3001 &
           npx wait-on http://localhost:3001
 
-      - name: Run tests
-        run: npm test
+      - name: Run calculator tests
+        run: pytest tests/test_calculator.py -v
+        env:
+          PLAYWRIGHT_BASE_URL: "http://localhost:3001"
+
+  medical-tests:
+    runs-on: ubuntu-latest
+    env:
+      PORT: 3001
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Node.js dependencies
+        run: npm install
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install Python dependencies
+        run: |
+          pip install -r requirements-test.txt
+          pip install flask flask-cors
+          playwright install --with-deps chromium
+
+      - name: Start Next.js dev server
+        run: |
+          npm run dev -- -p 3001 &
+          npx wait-on http://localhost:3001
+
+      - name: Start Flask backend
+        run: |
+          python backend/documentfetcher.py &
+          npx wait-on http://localhost:3333
+
+      - name: Run medical tests
+        run: pytest tests/test_medical_page.py -v
         env:
           PLAYWRIGHT_BASE_URL: "http://localhost:3001" 
