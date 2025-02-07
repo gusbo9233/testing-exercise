@@ -69,7 +69,6 @@ jobs:
       - name: Install Python dependencies
         run: |
           pip install -r requirements-test.txt
-          pip install flask flask-cors
           playwright install --with-deps chromium
 
       - name: Start Next.js dev server
@@ -80,7 +79,7 @@ jobs:
       - name: Start Flask backend
         run: |
           python backend/documentfetcher.py &
-          npx wait-on http://localhost:3333
+          npx wait-on http://localhost:3333/options
 
       - name: Run medical tests
         run: pytest tests/test_medical_page.py -v
